@@ -1,0 +1,368 @@
+<html>
+  <head>
+    <style>
+      body
+      {
+          margin: 0px;
+          text-align: center;
+      }
+      .game_box
+      {
+          width: 50%;
+          height: 50%;
+          margin: auto;
+          position: absolute;
+          top: 0; left: 0; bottom: 0; right: 0;
+
+          border: 1px solid black;
+          box-shadow: 0px 5px 0px gray;
+      }
+      .left_arrow
+      {
+          position: absolute;
+          top: 50%;
+          left: 20%;
+      }
+      .right_arrow
+      {
+          position: absolute;
+          top: 50%;
+          right: 20%;
+      }
+      .drag
+      {
+          position: absolute;
+      }
+      #skull
+      {
+          position: absolute;
+          height: 11%;
+          width: 7.5%;
+          top: 6%;
+          left: 49%;
+      }
+      #brain
+      {
+          display: none;
+          top: 11%;
+          left: 65%;
+      }
+      #spider
+      {
+          position: absolute;
+          height: 13%;
+          width: 4%;
+          top: 48.5%;
+          left: 50%;
+      }
+      #wall
+      {
+          opacity: 1;
+      }
+      #walltext
+      {
+          position: absolute;
+          width: 20%;
+          top: 45%;
+          left: 40%;
+          opacity: 0;
+      }
+      #hangman
+      {
+          position: absolute;
+          width: 30%;
+          top: 35%;
+          left: 55%;
+      }
+      #hangman_guess
+      {
+          position: absolute;
+          top: 50%;
+          left: 66%;
+      }
+      #escape
+      {
+          position: absolute;
+          top: 80%;
+          left: 47.5%;
+      }
+    </style>
+  </head>
+  
+  <body>
+
+    <div class="game_box">
+      <img id="wall" src="north.png" height="100%" draggable="false" />
+
+      <!-- north wall -->
+      <span id="walltext">hidden</span>
+      
+      <!-- west wall -->
+      <div id="skull" ondrop="drop(event)" ondragover="allowdrop(event)"></div>
+      <img id="brain" src="brain.png" height="11%" class="drag" draggable="true" ondragstart="drag(event)" />
+
+      <!-- east wall -->
+      <div id="spider" onclick="spider_click(event)"></div>
+
+      <!-- south wall -->
+      <span id="hangman">stuff</span>
+      <button id="hangman_guess" onclick="guess()">Guess</button>
+      
+    </div>
+
+    <button class="left_arrow" onclick="left_click()">&larr;</button>
+    <button class="right_arrow" onclick="right_click()">&rarr;</button>
+    <button id="escape" onclick="unlock()">Escape</button>
+
+    <script>
+      
+      var which_wall = "north";
+      var allow_erase = false, erase_count = 0;
+      var secret_word, current_state, num_tries;
+      var dictionary = ["scythe ", "Holger", "peacekeepe r", "death",
+                        "lunatic", "blood", "zombie", "bye"];
+      var north_key, west_key, south_key, east_key;
+
+      function reset()
+      {
+          var wall = document.getElementById("wall");
+          document.getElementById("brain").style.display = "none";
+          document.getElementById("skull").style.display = "none";
+          document.getElementById("spider").style.display = "none";
+          wall.onmousedown = null;
+          wall.onmouseup = null;
+          wall.onmousemove = null;
+          wall.style.opacity = 1;
+          document.getElementById("walltext").style.opacity = 0;
+          document.getElementById("hangman").style.display = "none";
+          document.getElementById("hangman_guess").style.display = "none";
+      }
+
+      function load_north()
+      {
+          var wall = document.getElementById("wall");
+
+          erase_count = 0;
+          wall.onmousedown = start_erase;
+          wall.onmouseup = stop_erase;
+          wall.onmousemove = erase;
+
+          document.getElementById("walltext").innerHTML = north_key + " _ _ _";
+          
+          wall.src = "north.png";
+          which_wall = "north";
+      }
+
+      function load_west()
+      {
+          document.getElementById("wall").src = "west.png";
+          which_wall = "west";
+          document.getElementById("brain").style.display = "inline";
+          document.getElementById("skull").style.display = "block";
+      }
+
+      function load_east()
+      {
+          document.getElementById("wall").src = "east.png";
+          which_wall = "east";
+          document.getElementById("spider").style.display = "block";
+      }
+
+      function load_south()
+      {
+          document.getElementById("wall").src = "south.png";
+          which_wall = "south";
+          document.getElementById("hangman").style.display = "inline";
+          document.getElementById("hangman_guess").style.display = "inline";
+          var random_number = Math.floor(Math.random() * dictionary.length);
+          secret_word = dictionary[random_number];
+          
+          var game_text = "Number of tries left: 5";
+          game_text += "<br />";
+          current_state = "";
+          var i;
+          for (i=0; i<secret_word.length; i++)
+          {
+              current_state += "_";
+              game_text += "_ ";
+          }
+          document.getElementById("hangman").innerHTML = game_text;
+          document.getElementById("hangman_guess").disabled = false;
+          num_tries = 5;
+      }
+      
+      function left_click()
+      {
+          if (which_wall == "north")
+          {
+              reset();
+              load_west();
+          }
+          else if (which_wall == "west")
+          {
+              reset()
+              load_south();
+          }
+          else if (which_wall == "south")
+          {
+              reset();
+              load_east();
+          }
+          else if (which_wall == "east")
+          {
+              reset();
+              load_north();
+          }
+      }
+
+      function right_click()
+      {
+          if (which_wall == "north")
+          {
+              reset();
+              load_east();
+          }
+          else if (which_wall == "west")
+          {
+              reset();
+              load_north();
+          }
+          else if (which_wall == "south")
+          {
+              reset();
+              load_west();
+          }
+          else if (which_wall == "east")
+          {
+              reset();
+              load_south();
+          }
+      }
+
+      function allowdrop(ev)
+      {
+          ev.preventDefault();
+      }
+
+      function drag(ev)
+      {
+          ev.dataTransfer.setData("text", ev.target.id);
+      }
+
+      function drop(ev)
+      {
+          ev.preventDefault();
+          var data = ev.dataTransfer.getData("text");
+          if (data == "brain")
+          {
+              reset();
+              /* TODO (2):
+                 Here we want to give the player the letter of
+                 the passcode corresponding to the west puzzle.
+                 Change null to west_key. */
+              alert("_ " + west_key + " _ _");
+
+          }
+      }
+
+      function start_erase()
+      {
+          allow_erase = true;
+          erase_count++;
+      }
+
+      function stop_erase()
+      {
+          allow_erase = false;
+      }
+
+      function erase()
+      {
+          if (allow_erase)
+          {
+              var wall = document.getElementById("wall");
+              var text = document.getElementById("walltext");
+              wall.style.opacity = 1 - 0.1 * erase_count;
+              text.style.opacity = 0 + 0.1 * erase_count;
+          }
+      }
+
+      function spider_click(ev)
+      {
+          /* TODO (3):
+             Set the alert message to "_ _ _ " + east_key. */
+          alert("_ _ _ " + east_key);
+      }
+
+      function guess(ev)
+      {
+          var letter = prompt("Guess a letter:", "");
+          var i, success = false;
+          var word_builder = "", display_text;
+          for (i=0; i<secret_word.length; i++)
+          {
+              if (letter == secret_word[i])
+              {
+                  word_builder += letter;
+                  success = true;
+              }
+              else
+              {
+                  word_builder += current_state[i];
+              }
+          }
+          if (word_builder == secret_word)
+          {
+              display_text = "_ _ " + south_key + " _";
+              display_text += "<br />";
+              document.getElementById("hangman_guess").disabled = true;
+          }
+          else
+          {
+              if (!success)
+              {
+                  num_tries--;
+                  if (num_tries == 0)
+                  {
+                      word_builder = secret_word;
+                      document.getElementById("hangman_guess").disabled = true;
+                  }
+              }
+              display_text = "Number of tries left: " + num_tries + "<br />";
+          }
+          for (i=0; i<secret_word.length; i++)
+          {
+              display_text += word_builder[i] + " ";
+          }
+          current_state = word_builder;
+          document.getElementById("hangman").innerHTML = display_text;
+      }
+
+      function unlock(ev)
+      {
+          var passcode = prompt("Enter the passcode:");
+          /* TODO (1):
+             Check if the passcode is equal to north_key + west_key +
+             south_key + east_key. */
+          if (passcode == north_key + west_key + south_key + east_key)
+              window.location.href = "win.html";
+          else
+              alert("Nope.");
+      }
+
+      var temp_random = Math.floor(Math.random() * 26);
+      north_key = String.fromCharCode(65 + temp_random);
+      temp_random = Math.floor(Math.random() * 26);
+      west_key = String.fromCharCode(65 + temp_random);
+      temp_random = Math.floor(Math.random() * 26);
+      south_key = String.fromCharCode(65 + temp_random);
+      temp_random = Math.floor(Math.random() * 26);
+      east_key = String.fromCharCode(65 + temp_random);
+      reset();
+      load_north();
+      
+    </script>
+    
+  </body>
+  
+</html>
